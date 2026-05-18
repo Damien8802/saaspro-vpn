@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math';
-import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(const SaaSProApp());
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ),
+  );
 }
 
 class SaaSProApp extends StatelessWidget {
-  const SaaSProApp({Key? key}) : super(key: key);
+  const SaaSProApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,109 +25,62 @@ class SaaSProApp extends StatelessWidget {
       title: 'SaaSPro VPN',
       theme: ThemeData(
         brightness: Brightness.dark,
-        primaryColor: const Color(0xFF4361EE),
-        scaffoldBackgroundColor: const Color(0xFF0A0E27),
+        primaryColor: const Color(0xFF6C5CE7),
+        scaffoldBackgroundColor: const Color(0xFF0F0F1F),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  bool _isConnected = false;
-  double _downloadSpeed = 0.0;
-  double _uploadSpeed = 0.0;
-  int _connectionSeconds = 0;
-  int _selectedIndex = 0;
-  int _selectedServer = 0;
-  
-  bool _stealthMode = true;
-  bool _splitTunneling = false;
-  bool _killSwitch = true;
-  bool _perAppProxy = false;
-  bool _localDNS = false;
-  List<String> _selectedApps = [];
-  List<String> _excludedRoutes = [];
-  TextEditingController _routeController = TextEditingController();
-  
-  final List<Map<String, dynamic>> _servers = [
-    {'emoji': '🚀', 'name': 'Авто', 'ping': 'Лучший', 'ip': 'auto'},
-    {'emoji': '🇷🇺', 'name': 'Россия', 'ping': '5 ms', 'ip': '185.159.157.1'},
-    {'emoji': '🇳🇱', 'name': 'Нидерланды', 'ping': '35 ms', 'ip': '185.159.158.1'},
-    {'emoji': '🇺🇸', 'name': 'США', 'ping': '120 ms', 'ip': '185.159.159.1'},
-    {'emoji': '🇩🇪', 'name': 'Германия', 'ping': '40 ms', 'ip': '185.159.160.1'},
-    {'emoji': '🇸🇬', 'name': 'Сингапур', 'ping': '150 ms', 'ip': '185.159.161.1'},
-  ];
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
 
-  Timer? _speedTimer;
-  Timer? _connectionTimer;
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+    _controller.forward();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    
+    await Future.delayed(const Duration(seconds: 2));
+    
+    if (mounted) {
+      if (token != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
-    _speedTimer?.cancel();
-    _connectionTimer?.cancel();
-    _routeController.dispose();
+    _controller.dispose();
     super.dispose();
-  }
-
-  void _toggleVPN() {
-    setState(() {
-      _isConnected = !_isConnected;
-      if (_isConnected) {
-        _startVPN();
-      } else {
-        _stopVPN();
-      }
-    });
-  }
-
-  void _startVPN() {
-    _speedTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (_isConnected) {
-        setState(() {
-          _downloadSpeed = (50 + Random().nextInt(100)).toDouble();
-          _uploadSpeed = (20 + Random().nextInt(50)).toDouble();
-        });
-      } else {
-        timer.cancel();
-      }
-    });
-    
-    _connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_isConnected) {
-        setState(() {
-          _connectionSeconds++;
-        });
-      } else {
-        timer.cancel();
-      }
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('🔒 VPN подключен - Обход блокировок активен')),
-    );
-  }
-
-  void _stopVPN() {
-    _connectionSeconds = 0;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('🔓 VPN отключен')),
-    );
-  }
-
-  String _formatTime(int seconds) {
-    int minutes = seconds ~/ 60;
-    int secs = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -129,39 +91,290 @@ class _HomeScreenState extends State<HomeScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF0A0E27), Color(0xFF1A1A3E), Color(0xFF2D1B4E)],
+            colors: [Color(0xFF0F0F1F), Color(0xFF1A1A3E), Color(0xFF2D1B4E)],
           ),
         ),
-        child: SafeArea(
-          child: IndexedStack(
-            index: _selectedIndex,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildHomePage(),
-              _buildServersPage(),
-              _buildAppsPage(),
-              _buildProfilePage(),
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)],
+                  ),
+                  borderRadius: BorderRadius.circular(35),
+                ),
+                child: const Center(child: Icon(Icons.shield, size: 60, color: Colors.white)),
+              ),
+              const SizedBox(height: 30),
+              const Text('SaaSPro VPN', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              const Text('Ваша цифровая крепость', style: TextStyle(fontSize: 14, color: Colors.white70)),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigation(),
     );
   }
+}
 
-  Widget _buildHomePage() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          _buildHeader(),
-          _buildBrand(),
-          _buildVPNButton(),
-          if (_isConnected) _buildStats(),
-          const SizedBox(height: 20),
-          _buildBypassModes(),
-          const SizedBox(height: 20),
-          _buildExcludedRoutes(),
-        ],
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  Future<void> _login() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Заполните все поля')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.11.234:8080/api/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': _emailController.text,
+          'password': _passwordController.text,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final token = data['token'];
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', token);
+        
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Неверный email или пароль')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ошибка подключения к серверу')),
+      );
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0F0F1F), Color(0xFF1A1A3E)],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(30),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)],
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: const Center(child: Icon(Icons.shield, size: 50, color: Colors.white)),
+                  ),
+                  const SizedBox(height: 30),
+                  const Text('SaaSPro VPN', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 40),
+                  TextField(
+                    controller: _emailController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: const BorderSide(color: Color(0xFF6C5CE7)),
+                      ),
+                      prefixIcon: const Icon(Icons.email, color: Color(0xFF6C5CE7)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Пароль',
+                      labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: const BorderSide(color: Color(0xFF6C5CE7)),
+                      ),
+                      prefixIcon: const Icon(Icons.lock, color: Color(0xFF6C5CE7)),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.white54),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6C5CE7),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Войти', style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _isConnected = false;
+  String _userEmail = '';
+  String _userName = '';
+  bool _isOwner = false;
+  int _selectedServer = 0;
+  
+  final List<Map<String, dynamic>> _servers = [
+    {'emoji': '🇷🇺', 'name': 'Россия', 'ping': '5 ms', 'ip': '185.159.157.1'},
+    {'emoji': '🇳🇱', 'name': 'Нидерланды', 'ping': '35 ms', 'ip': '185.159.158.1'},
+    {'emoji': '🇺🇸', 'name': 'США', 'ping': '120 ms', 'ip': '185.159.159.1'},
+    {'emoji': '🇩🇪', 'name': 'Германия', 'ping': '40 ms', 'ip': '185.159.160.1'},
+    {'emoji': '🇸🇬', 'name': 'Сингапур', 'ping': '150 ms', 'ip': '185.159.161.1'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    
+    if (token != null) {
+      try {
+        final response = await http.get(
+          Uri.parse('http://192.168.11.234:8080/api/user/profile'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+        
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          setState(() {
+            _userEmail = data['email'] ?? '';
+            _userName = data['name'] ?? _userEmail.split('@')[0];
+            _isOwner = _userEmail == 'dev@businesstack.ru' || data['role'] == 'owner';
+          });
+        }
+      } catch (e) {
+        print('Error loading user: $e');
+      }
+    }
+  }
+
+  void _toggleVPN() {
+    setState(() {
+      _isConnected = !_isConnected;
+    });
+  }
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0F0F1F), Color(0xFF1A1A3E), Color(0xFF2D1B4E)],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _buildHeader(),
+                if (_isOwner) _buildOwnerBadge(),
+                _buildBrand(),
+                _buildVPNButton(),
+                _buildServersList(),
+                const SizedBox(height: 20),
+                _buildLogoutButton(),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -170,25 +383,24 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Builder(
-          builder: (context) => Container(
-            width: 45,
-            height: 45,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
+        Container(
+          width: 45,
+          height: 45,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () {},
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(25),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
           ),
           child: Row(
             children: [
@@ -197,24 +409,44 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 35,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF4361EE), Color(0xFF7209B7)],
+                    colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)],
                   ),
                   shape: BoxShape.circle,
                 ),
-                child: const Center(child: Text('👤', style: TextStyle(fontSize: 18))),
+                child: Center(child: Text(_userName.isNotEmpty ? _userName[0].toUpperCase() : '👤', style: const TextStyle(fontSize: 18))),
               ),
-              const SizedBox(width: 8),
-              const Column(
+              const SizedBox(width: 10),
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('SaaSPro', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('Премиум', style: TextStyle(fontSize: 11, color: Colors.white70)),
+                  Text(_userName.isNotEmpty ? _userName : 'Пользователь', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const Text('Premium', style: TextStyle(fontSize: 10, color: Colors.white70)),
                 ],
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildOwnerBadge() {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBBF24).withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFFBBF24)),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.verified, size: 18, color: Color(0xFFFBBF24)),
+          SizedBox(width: 8),
+          Text('👑 ВЛАДЕЛЕЦ ПЛАТФОРМЫ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFFBBF24))),
+        ],
+      ),
     );
   }
 
@@ -227,27 +459,29 @@ class _HomeScreenState extends State<HomeScreen> {
           height: 100,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF4361EE), Color(0xFF7209B7)],
+              colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)],
             ),
             borderRadius: BorderRadius.circular(30),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF4361EE).withOpacity(0.5),
-                blurRadius: 20,
+                color: const Color(0xFF6C5CE7).withOpacity(0.5),
+                blurRadius: 30,
+                spreadRadius: 10,
               ),
             ],
           ),
           child: const Center(child: Icon(Icons.shield, size: 50, color: Colors.white)),
         ),
         const SizedBox(height: 20),
-        const Text(
-          'SaaSPro',
-          style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold),
-        ),
+        const Text('SaaSPro VPN', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        const Text(
-          'Обход блокировок • Ваша цифровая крепость',
-          style: TextStyle(fontSize: 12, color: Colors.white54),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF6C5CE7).withOpacity(0.2),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Text('ОБХОД БЛОКИРОВОК', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -268,13 +502,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 shape: BoxShape.circle,
                 color: Colors.white.withOpacity(0.03),
                 boxShadow: _isConnected
-                    ? [
-                        BoxShadow(
-                          color: const Color(0xFF00F2FE).withOpacity(0.5),
-                          blurRadius: 30,
-                          spreadRadius: 10,
-                        ),
-                      ]
+                    ? [BoxShadow(color: const Color(0xFF00F2FE).withOpacity(0.5), blurRadius: 30, spreadRadius: 10)]
                     : [],
               ),
               child: AnimatedContainer(
@@ -285,16 +513,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: _isConnected
-                      ? const LinearGradient(
-                          colors: [Color(0xFF00F2FE), Color(0xFF4FACFE)],
-                        )
-                      : const LinearGradient(
-                          colors: [Color(0xFF4361EE), Color(0xFF7209B7)],
-                        ),
+                      ? const LinearGradient(colors: [Color(0xFF00F2FE), Color(0xFF4FACFE)])
+                      : const LinearGradient(colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)]),
                 ),
-                child: const Center(
-                  child: Icon(Icons.shield, size: 60, color: Colors.white),
-                ),
+                child: const Center(child: Icon(Icons.power_settings_new, size: 60, color: Colors.white)),
               ),
             ),
             const SizedBox(height: 20),
@@ -307,347 +529,55 @@ class _HomeScreenState extends State<HomeScreen> {
                 letterSpacing: 2,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              _isConnected ? _servers[_selectedServer]['name'] : 'Нажмите для защиты',
-              style: const TextStyle(fontSize: 14, color: Colors.white54),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStats() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildStatItem(Icons.download, '${_downloadSpeed.toInt()}', 'Мбит/с'),
-          _buildStatItem(Icons.upload, '${_uploadSpeed.toInt()}', 'Мбит/с'),
-          _buildStatItem(Icons.timer, _formatTime(_connectionSeconds), ''),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(IconData icon, String value, String unit) {
+  Widget _buildServersList() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: const Color(0xFF4361EE), size: 24),
-        const SizedBox(height: 8),
-        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        if (unit.isNotEmpty)
-          Text(unit, style: const TextStyle(fontSize: 11, color: Colors.white54)),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          child: Text('🌍 Доступные серверы', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(height: 10),
+        ..._servers.asMap().entries.map((entry) {
+          final index = entry.key;
+          final server = entry.value;
+          return Card(
+            color: _selectedServer == index
+                ? const Color(0xFF6C5CE7).withOpacity(0.2)
+                : Colors.white.withOpacity(0.05),
+            margin: const EdgeInsets.only(bottom: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            child: ListTile(
+              leading: Text(server['emoji'], style: const TextStyle(fontSize: 28)),
+              title: Text(server['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text('${server['ping']} • ${server['ip']}', style: const TextStyle(fontSize: 11)),
+              trailing: _selectedServer == index
+                  ? const Icon(Icons.check_circle, color: Color(0xFF6C5CE7))
+                  : null,
+              onTap: () => setState(() => _selectedServer = index),
+            ),
+          );
+        }),
       ],
     );
   }
 
-  Widget _buildBypassModes() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Column(
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.shield, size: 20, color: Color(0xFF4361EE)),
-              SizedBox(width: 8),
-              Text('Технологии обхода', style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 15),
-          _buildModeToggle('Стелс-режим', 'Маскировка под HTTPS', _stealthMode, (val) {
-            setState(() => _stealthMode = val);
-          }),
-          _buildModeToggle('Split Tunneling', 'Только заблокированные сайты', _splitTunneling, (val) {
-            setState(() => _splitTunneling = val);
-          }),
-          _buildModeToggle('Kill Switch', 'Блокировка интернета при отключении', _killSwitch, (val) {
-            setState(() => _killSwitch = val);
-          }),
-          _buildModeToggle('Per App Proxy', 'Прокси только для выбранных приложений', _perAppProxy, (val) {
-            setState(() => _perAppProxy = val);
-          }),
-          _buildModeToggle('Локальный DNS', 'Использовать свой DNS сервер', _localDNS, (val) {
-            setState(() => _localDNS = val);
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildModeToggle(String title, String subtitle, bool value, Function(bool) onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-                Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.white54)),
-              ],
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: const Color(0xFF4361EE),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExcludedRoutes() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.route, size: 20, color: Color(0xFF4361EE)),
-              SizedBox(width: 8),
-              Text('Исключенные маршруты', style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 15),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _routeController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'IP адрес или диапазон',
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () {
-                  if (_routeController.text.isNotEmpty) {
-                    setState(() {
-                      _excludedRoutes.add(_routeController.text);
-                      _routeController.clear();
-                    });
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4361EE),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                child: const Icon(Icons.add),
-              ),
-            ],
-          ),
-          const SizedBox(height: 15),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _excludedRoutes.map((route) => Chip(
-              label: Text(route),
-              deleteIcon: const Icon(Icons.close, size: 16),
-              onDeleted: () => setState(() => _excludedRoutes.remove(route)),
-              backgroundColor: Colors.white.withOpacity(0.1),
-            )).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildServersPage() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: _servers.length,
-      itemBuilder: (context, index) {
-        final server = _servers[index];
-        return Card(
-          color: _selectedServer == index
-              ? const Color(0xFF4361EE).withOpacity(0.2)
-              : Colors.white.withOpacity(0.05),
-          margin: const EdgeInsets.only(bottom: 10),
-          child: ListTile(
-            leading: Text(server['emoji'], style: const TextStyle(fontSize: 30)),
-            title: Text(server['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('${server['ping']} • ${server['ip']}', style: const TextStyle(fontSize: 12)),
-            trailing: _selectedServer == index
-                ? const Icon(Icons.check_circle, color: Color(0xFF4361EE))
-                : null,
-            onTap: () {
-              setState(() {
-                _selectedServer = index;
-                _selectedIndex = 0;
-              });
-              if (_isConnected) {
-                _stopVPN();
-                Future.delayed(const Duration(seconds: 1), () => _startVPN());
-              }
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildAppsPage() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.apps, size: 80, color: Color(0xFF4361EE)),
-          const SizedBox(height: 20),
-          const Text(
-            'Per App Proxy',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            _selectedApps.isEmpty 
-                ? 'Все приложения через VPN' 
-                : '${_selectedApps.length} приложений в исключении',
-            style: const TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(height: 20),
-          if (_selectedApps.isNotEmpty)
-            Container(
-              height: 200,
-              padding: const EdgeInsets.all(10),
-              child: ListView.builder(
-                itemCount: _selectedApps.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(_selectedApps[index]),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.remove_circle, color: Colors.red),
-                      onPressed: () {
-                        setState(() {
-                          _selectedApps.removeAt(index);
-                        });
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-          ElevatedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Выбор приложений будет в следующей версии')),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4361EE),
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-            ),
-            child: const Text('Выбрать приложения'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfilePage() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF4361EE), Color(0xFF7209B7)],
-              ),
-              borderRadius: BorderRadius.circular(50),
-            ),
-            child: const Center(child: Text('👤', style: TextStyle(fontSize: 50))),
-          ),
-          const SizedBox(height: 20),
-          const Text('SaaSPro Пользователь', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          const Text('Премиум подписка', style: TextStyle(color: Colors.white70)),
-          const SizedBox(height: 30),
-          Card(
-            color: Colors.white.withOpacity(0.05),
-            margin: const EdgeInsets.symmetric(horizontal: 40),
-            child: const Padding(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Text('Действует до: 31.12.2025'),
-                  SizedBox(height: 10),
-                  Text('Тариф: Безлимитный'),
-                  SizedBox(height: 10),
-                  Text('Скорость: До 1 Гбит/с'),
-                  SizedBox(height: 10),
-                  Text('Обход DPI: Активен'),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNavigation() {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(Icons.home, 'Главная', 0),
-          _buildNavItem(Icons.public, 'Серверы', 1),
-          _buildNavItem(Icons.apps, 'Приложения', 2),
-          _buildNavItem(Icons.person, 'Профиль', 3),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedIndex = index),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: isSelected ? const Color(0xFF4361EE) : Colors.white54, size: 24),
-          const SizedBox(height: 4),
-          Text(label, style: TextStyle(fontSize: 11, color: isSelected ? const Color(0xFF4361EE) : Colors.white54)),
-        ],
+  Widget _buildLogoutButton() {
+    return ElevatedButton.icon(
+      onPressed: _logout,
+      icon: const Icon(Icons.logout),
+      label: const Text('Выйти'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.red.withOpacity(0.2),
+        foregroundColor: Colors.red,
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
       ),
     );
   }
