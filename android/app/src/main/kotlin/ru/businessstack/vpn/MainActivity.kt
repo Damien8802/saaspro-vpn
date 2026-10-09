@@ -1,5 +1,4 @@
-package com.saaspro.saaspro_app_2025
-
+package ru.businessstack.vpn
 import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity : FlutterActivity()

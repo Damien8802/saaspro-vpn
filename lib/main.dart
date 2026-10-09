@@ -7,7 +7,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 void main() {
-  runApp(const SaaSProApp());
+  runApp(const VPNApp());
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -16,8 +16,8 @@ void main() {
   );
 }
 
-class SaaSProApp extends StatelessWidget {
-  const SaaSProApp({super.key});
+class VPNApp extends StatelessWidget {
+  const VPNApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Center(child: Icon(Icons.shield, size: 50, color: Colors.white)),
                   ),
                   const SizedBox(height: 30),
-                  const Text('SaaSPro VPN', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                  const Text('VPN', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 40),
                   TextField(
                     controller: _emailController,
@@ -473,7 +473,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: const Center(child: Icon(Icons.shield, size: 50, color: Colors.white)),
         ),
         const SizedBox(height: 20),
-        const Text('SaaSPro VPN', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+        const Text('VPN', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
