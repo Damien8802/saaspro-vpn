@@ -22,7 +22,7 @@ class SaaSProApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SaaSPro VPN',
+      title: 'Bisines Stack VPN',
       theme: ThemeData(
         brightness: Brightness.dark,
         primaryColor: const Color(0xFF6C5CE7),
@@ -110,7 +110,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 child: const Center(child: Icon(Icons.shield, size: 60, color: Colors.white)),
               ),
               const SizedBox(height: 30),
-              const Text('SaaSPro VPN', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+              const Text('Business Stack VPN', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               const Text('Ваша цифровая крепость', style: TextStyle(fontSize: 14, color: Colors.white70)),
             ],
@@ -146,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.11.234:8080/api/auth/login'),
+       Uri.parse('https://businessstack.ru/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email': _emailController.text,
@@ -313,7 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (token != null) {
       try {
         final response = await http.get(
-          Uri.parse('http://192.168.11.234:8080/api/user/profile'),
+          Uri.parse('https://businessstack.ru/api/user/profile'),
           headers: {'Authorization': 'Bearer $token'},
         );
         
