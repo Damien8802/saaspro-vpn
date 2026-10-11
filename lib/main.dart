@@ -98,17 +98,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)],
-                  ),
-                  borderRadius: BorderRadius.circular(35),
-                ),
-               child: Center(child: Image.asset('assets/logo.png', width: 100, height: 100, fit: BoxFit.cover)),
-              ),
+             Image.asset(
+  'assets/logo.png',
+  width: 120,
+  height: 120,
+  fit: BoxFit.contain,
+),
               const SizedBox(height: 30),
               const Text('Business Stack VPN', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
@@ -199,17 +194,12 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)],
-                      ),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Center(child: Image.asset('assets/logo.png', width: 85, height: 85, fit: BoxFit.cover)),
-                  ),
+                 Image.asset(
+  'assets/logo.png',
+  width: 120,
+  height: 120,
+  fit: BoxFit.contain,
+),
                   const SizedBox(height: 30),
                   const Text('VPN', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 40),
