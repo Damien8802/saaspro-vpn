@@ -169,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ошибка подключения к серверу')),
+       SnackBar(content: Text('Ошибка: $e')),
       );
     }
 
