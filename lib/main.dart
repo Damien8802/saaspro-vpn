@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(const VPNApp());
@@ -316,11 +317,29 @@ void initState() {
     }
   }
 
-  void _toggleVPN() {
-    setState(() {
-      _isConnected = !_isConnected;
-    });
+  static const _vpnChannel = MethodChannel('ru.businessstack.vpn/vpn');
+
+Future<void> _toggleVPN() async {
+  try {
+    if (_isConnected) {
+      await _vpnChannel.invokeMethod('stopVpn');
+      setState(() => _isConnected = false);
+    } else {
+      final result = await _vpnChannel.invokeMethod('startVpn');
+      if (result == true) {
+        setState(() => _isConnected = true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Разрешите подключение VPN в настройках')),
+        );
+      }
+    }
+  } on PlatformException catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Ошибка VPN: ${e.message}')),
+    );
   }
+}
 
 Future<void> _loadCountries() async {
   final prefs = await SharedPreferences.getInstance();
