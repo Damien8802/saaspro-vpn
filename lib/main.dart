@@ -1,11 +1,11 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
-import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/services.dart';
+import 'package:flutter_v2ray_plus/flutter_v2ray_plus.dart';
 
 void main() {
   runApp(const VPNApp());
@@ -60,9 +60,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Future<void> _checkAuth() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
-    
+
     await Future.delayed(const Duration(milliseconds: 100));
-    
+
     if (mounted) {
       if (token != null) {
         Navigator.pushReplacement(
@@ -99,12 +99,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(
-                'assets/logo.png',
-                width: 140,
-                height: 140,
-                fit: BoxFit.contain,
-              ),
+              Image.asset('assets/logo.png', width: 140, height: 140, fit: BoxFit.contain),
               const SizedBox(height: 30),
               const Text('Business Stack VPN', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
@@ -153,10 +148,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final token = data['access_token'] ?? data['token'];
-        
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
-        
+
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -170,7 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-       SnackBar(content: Text('Ошибка: $e')),
+        SnackBar(content: Text('Ошибка: $e')),
       );
     }
 
@@ -195,12 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset(
-                    'assets/logo.png',
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.contain,
-                  ),
+                  Image.asset('assets/logo.png', width: 120, height: 120, fit: BoxFit.contain),
                   const SizedBox(height: 20),
                   const Text('VPN', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 40),
@@ -277,32 +267,62 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  late final FlutterV2ray _flutterV2Ray;
   bool _isConnected = false;
+  bool _isConnecting = false;
   String _userEmail = '';
   String _userName = '';
   bool _isOwner = false;
   int _selectedServer = 0;
-  
- List<Map<String, dynamic>> _servers = [];
+  String _vlessUrl = '';
+
+  List<Map<String, dynamic>> _servers = [];
 
   @override
-void initState() {
-  super.initState();
-  _loadUserData();
-  _loadCountries();
-}
+  void initState() {
+    super.initState();
+    _flutterV2Ray = FlutterV2ray();
+    _loadUserData();
+    _loadCountries();
+    _loadVlessConfig();
+  }
+
+  Future<void> _loadVlessConfig() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    if (token == null) return;
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://businessstack.ru/api/vpn/stealth/config/vless'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _vlessUrl = data['vless_url'] ?? '';
+        });
+        print('VLESS config loaded: ${_vlessUrl.isNotEmpty}');
+      } else {
+        print('Error loading VLESS config: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error loading VLESS config: $e');
+    }
+  }
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
-    
+
     if (token != null) {
       try {
         final response = await http.get(
           Uri.parse('https://businessstack.ru/api/user/profile'),
           headers: {'Authorization': 'Bearer $token'},
         );
-        
+
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           setState(() {
@@ -317,65 +337,95 @@ void initState() {
     }
   }
 
-  static const _vpnChannel = MethodChannel('ru.businessstack.vpn/vpn');
+  Future<void> _loadCountries() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
 
-Future<void> _toggleVPN() async {
-  try {
-    if (_isConnected) {
-      await _vpnChannel.invokeMethod('stopVpn');
-      setState(() => _isConnected = false);
-    } else {
-      final result = await _vpnChannel.invokeMethod('startVpn');
-      if (result == true) {
-        setState(() => _isConnected = true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Разрешите подключение VPN в настройках')),
-        );
+    if (token == null) return;
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://businessstack.ru/api/vpn/countries'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final countries = data['countries'] as List;
+
+        setState(() {
+          _servers = countries.map((c) => {
+            'emoji': c['flag'] ?? '🌍',
+            'name': c['name'] ?? 'Unknown',
+            'ping': '${c['ping'] ?? 0} ms',
+            'code': c['code'] ?? '',
+            'servers': c['servers'] ?? 0,
+          }).toList();
+        });
+
+        print('Загружено стран: ${_servers.length}');
       }
+    } catch (e) {
+      print('Error loading countries: $e');
     }
-  } on PlatformException catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Ошибка VPN: ${e.message}')),
-    );
   }
-}
 
-Future<void> _loadCountries() async {
-  final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('auth_token');
-  
-  if (token == null) return;
-  
-  try {
-    final response = await http.get(
-      Uri.parse('https://businessstack.ru/api/vpn/countries'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final countries = data['countries'] as List;
-      
-      setState(() {
-        _servers = countries.map((c) => {
-          'emoji': c['flag'] ?? '🌍',
-          'name': c['name'] ?? 'Unknown',
-          'ping': '${c['ping'] ?? 0} ms',
-          'code': c['code'] ?? '',
-          'servers': c['servers'] ?? 0,
-        }).toList();
-      });
-      
-      print('Загружено стран: ${_servers.length}');
-    } else {
-      print('Ошибка загрузки стран: ${response.statusCode}');
+  Future<void> _toggleVPN() async {
+    if (_isConnecting) return;
+
+    setState(() => _isConnecting = true);
+
+    try {
+      if (_isConnected) {
+        await _flutterV2Ray.stopVless();
+        setState(() => _isConnected = false);
+      } else {
+        if (_vlessUrl.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Конфиг VPN не загружен. Обновите страницу.')),
+          );
+          setState(() => _isConnecting = false);
+          return;
+        }
+
+        final parser = FlutterV2ray.parseFromURL(_vlessUrl);
+        final config = parser.getFullConfiguration();
+
+        final allowed = await _flutterV2Ray.requestPermission();
+        if (!allowed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Разрешите VPN в настройках телефона')),
+          );
+          setState(() => _isConnecting = false);
+          return;
+        }
+
+        await _flutterV2Ray.initializeVless(
+          remark: parser.remark,
+          config: config,
+          proxyOnly: false,
+        );
+
+        await _flutterV2Ray.startVless();
+
+        setState(() => _isConnected = true);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка VPN: $e')),
+      );
+      print('VPN error: $e');
     }
-  } catch (e) {
-    print('Error loading countries: $e');
+
+    setState(() => _isConnecting = false);
   }
-}
+
   Future<void> _logout() async {
+    if (_isConnected) {
+      await _flutterV2Ray.stopVless();
+      setState(() => _isConnected = false);
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     if (mounted) {
@@ -492,12 +542,7 @@ Future<void> _loadCountries() async {
     return Column(
       children: [
         const SizedBox(height: 20),
-        Image.asset(
-          'assets/logo.png',
-          width: 140,
-          height: 140,
-          fit: BoxFit.contain,
-        ),
+        Image.asset('assets/logo.png', width: 140, height: 140, fit: BoxFit.contain),
         const SizedBox(height: 20),
         const Text('VPN', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
@@ -515,7 +560,7 @@ Future<void> _loadCountries() async {
 
   Widget _buildVPNButton() {
     return GestureDetector(
-      onTap: _toggleVPN,
+      onTap: _isConnecting ? null : _toggleVPN,
       child: Container(
         margin: const EdgeInsets.all(30),
         child: Column(
@@ -542,12 +587,16 @@ Future<void> _loadCountries() async {
                       ? const LinearGradient(colors: [Color(0xFF00F2FE), Color(0xFF4FACFE)])
                       : const LinearGradient(colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)]),
                 ),
-                child: const Center(child: Icon(Icons.power_settings_new, size: 60, color: Colors.white)),
+                child: Center(
+                  child: _isConnecting
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Icon(Icons.power_settings_new, size: 60, color: Colors.white),
+                ),
               ),
             ),
             const SizedBox(height: 20),
             Text(
-              _isConnected ? 'ЗАЩИЩЕН' : 'ОТКЛЮЧЕН',
+              _isConnecting ? 'ПОДКЛЮЧЕНИЕ...' : (_isConnected ? 'ЗАЩИЩЕН' : 'ОТКЛЮЧЕН'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
