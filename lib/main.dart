@@ -22,7 +22,7 @@ class VPNApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Bisines Stack VPN',
+      title: 'Business Stack VPN',
       theme: ThemeData(
         brightness: Brightness.dark,
         primaryColor: const Color(0xFF6C5CE7),
@@ -98,12 +98,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-             Image.asset(
-  'assets/logo.png',
-  width: 120,
-  height: 120,
-  fit: BoxFit.contain,
-),
+              Image.asset(
+                'assets/logo.png',
+                width: 140,
+                height: 140,
+                fit: BoxFit.contain,
+              ),
               const SizedBox(height: 30),
               const Text('Business Stack VPN', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
@@ -141,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await http.post(
-       Uri.parse('https://businessstack.ru/api/auth/login'),
+        Uri.parse('https://businessstack.ru/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email': _emailController.text,
@@ -194,13 +194,13 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                 Image.asset(
-  'assets/logo.png',
-  width: 120,
-  height: 120,
-  fit: BoxFit.contain,
-),
-                  const SizedBox(height: 30),
+                  Image.asset(
+                    'assets/logo.png',
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(height: 20),
                   const Text('VPN', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 40),
                   TextField(
@@ -444,23 +444,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         const SizedBox(height: 20),
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)],
-            ),
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF6C5CE7).withOpacity(0.5),
-                blurRadius: 30,
-                spreadRadius: 10,
-              ),
-            ],
-          ),
-          child: Center(child: Image.asset('assets/logo.png', width: 85, height: 85, fit: BoxFit.cover)),
+        Image.asset(
+          'assets/logo.png',
+          width: 140,
+          height: 140,
+          fit: BoxFit.contain,
         ),
         const SizedBox(height: 20),
         const Text('VPN', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
