@@ -151,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final token = data['token'];
+        final token = data['access_token'] ?? data['token'];
         
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
@@ -312,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {
             _userEmail = data['email'] ?? '';
             _userName = data['name'] ?? _userEmail.split('@')[0];
-            _isOwner = _userEmail == 'dev@businesstack.ru' || data['role'] == 'owner';
+            _isOwner = _userEmail == 'dev@businessstack.ru' || data['role'] == 'owner';
           });
         }
       } catch (e) {
