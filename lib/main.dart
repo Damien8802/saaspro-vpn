@@ -282,19 +282,14 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isOwner = false;
   int _selectedServer = 0;
   
-  final List<Map<String, dynamic>> _servers = [
-    {'emoji': '🇷🇺', 'name': 'Россия', 'ping': '5 ms', 'ip': '185.159.157.1'},
-    {'emoji': '🇳🇱', 'name': 'Нидерланды', 'ping': '35 ms', 'ip': '185.159.158.1'},
-    {'emoji': '🇺🇸', 'name': 'США', 'ping': '120 ms', 'ip': '185.159.159.1'},
-    {'emoji': '🇩🇪', 'name': 'Германия', 'ping': '40 ms', 'ip': '185.159.160.1'},
-    {'emoji': '🇸🇬', 'name': 'Сингапур', 'ping': '150 ms', 'ip': '185.159.161.1'},
-  ];
+ List<Map<String, dynamic>> _servers = [];
 
   @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
+void initState() {
+  super.initState();
+  _loadUserData();
+  _loadCountries();
+}
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -327,6 +322,40 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+Future<void> _loadCountries() async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('auth_token');
+  
+  if (token == null) return;
+  
+  try {
+    final response = await http.get(
+      Uri.parse('https://businessstack.ru/api/vpn/countries'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final countries = data['countries'] as List;
+      
+      setState(() {
+        _servers = countries.map((c) => {
+          'emoji': c['flag'] ?? '🌍',
+          'name': c['name'] ?? 'Unknown',
+          'ping': '${c['ping'] ?? 0} ms',
+          'code': c['code'] ?? '',
+          'servers': c['servers'] ?? 0,
+        }).toList();
+      });
+      
+      print('Загружено стран: ${_servers.length}');
+    } else {
+      print('Ошибка загрузки стран: ${response.statusCode}');
+    }
+  } catch (e) {
+    print('Error loading countries: $e');
+  }
+}
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
@@ -534,7 +563,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListTile(
               leading: Text(server['emoji'], style: const TextStyle(fontSize: 28)),
               title: Text(server['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('${server['ping']} • ${server['ip']}', style: const TextStyle(fontSize: 11)),
+              subtitle: Text('${server['ping']} • ${server['servers']} серверов', style: const TextStyle(fontSize: 11)),
               trailing: _selectedServer == index
                   ? const Icon(Icons.check_circle, color: Color(0xFF6C5CE7))
                   : null,
