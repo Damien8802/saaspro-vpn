@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_v2ray_plus/flutter_v2ray_plus.dart';
+import 'package:flutter_v2ray/flutter_v2ray.dart';
 
 void main() {
   runApp(const VPNApp());
