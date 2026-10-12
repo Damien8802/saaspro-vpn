@@ -377,7 +377,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       if (_isConnected) {
-        await _flutterV2Ray.stopVless();
+        await _flutterV2Ray.stopV2Ray();
         setState(() => _isConnected = false);
       } else {
         if (_vlessUrl.isEmpty) {
@@ -400,13 +400,13 @@ class _HomeScreenState extends State<HomeScreen> {
           return;
         }
 
-        await _flutterV2Ray.initializeVless(
+        await _flutterV2Ray.initialize(
           remark: parser.remark,
           config: config,
           proxyOnly: false,
         );
 
-        await _flutterV2Ray.startVless();
+        await _flutterV2Ray.startV2Ray();
 
         setState(() => _isConnected = true);
       }
@@ -422,7 +422,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _logout() async {
     if (_isConnected) {
-      await _flutterV2Ray.stopVless();
+      await _flutterV2Ray.stopV2Ray();
       setState(() => _isConnected = false);
     }
 
