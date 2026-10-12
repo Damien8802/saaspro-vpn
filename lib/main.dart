@@ -281,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _flutterV2Ray = FlutterV2ray();
+    _flutterV2Ray = FlutterV2ray(onStatusChanged: (status) { print('VPN status: $status'); });
     _loadUserData();
     _loadCountries();
     _loadVlessConfig();
@@ -400,13 +400,12 @@ class _HomeScreenState extends State<HomeScreen> {
           return;
         }
 
-        await _flutterV2Ray.initialize(
+        await _flutterV2Ray.initializeV2Ray();
+
+        await _flutterV2Ray.startV2Ray(
           remark: parser.remark,
           config: config,
-          proxyOnly: false,
         );
-
-        await _flutterV2Ray.startV2Ray();
 
         setState(() => _isConnected = true);
       }
@@ -657,3 +656,5 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
+
