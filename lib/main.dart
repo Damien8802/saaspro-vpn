@@ -269,6 +269,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late final FlutterV2ray _flutterV2Ray;
   bool _isConnected = false;
+  bool _wasConnected = false;
   bool _isConnecting = false;
   String _userEmail = '';
   String _userName = '';
@@ -278,15 +279,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Map<String, dynamic>> _servers = [];
 
-  @override
-  void initState() {
-    super.initState();
-    _flutterV2Ray = FlutterV2ray(onStatusChanged: (status) { print('VPN status: $status'); });
-    _loadUserData();
-    _loadCountries();
-    _loadVlessConfig();
-  }
-
+@override
+void initState() {
+  super.initState();
+  _flutterV2Ray = FlutterV2ray(onStatusChanged: (status) {
+    print('VPN status: ${status.state}');
+    if (mounted) {
+      setState(() {
+        _isConnected = (status.state == 'CONNECTED');
+        if (status.state == 'DISCONNECTED' && _wasConnected) {
+          _showDisconnectedSnack();
+          _wasConnected = false;
+        }
+        if (status.state == 'CONNECTED') {
+          _wasConnected = true;
+        }
+      });
+    }
+  });
+  _loadUserData();
+  _loadCountries();
+  _loadVlessConfig();
+}
   Future<void> _loadVlessConfig() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
@@ -370,6 +384,26 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+void _showDisconnectedSnack() {
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: const Text('VPN отключён. Нажмите «Подключить» снова.'),
+      backgroundColor: Colors.red.withOpacity(0.9),
+      duration: const Duration(seconds: 5),
+      action: SnackBarAction(
+        label: 'Переподключить',
+        textColor: Colors.white,
+        onPressed: () {
+          if (!_isConnected && !_isConnecting) {
+            _toggleVPN();
+          }
+        },
+      ),
+    ),
+  );
+}
+
   Future<void> _toggleVPN() async {
     if (_isConnecting) return;
 
@@ -403,11 +437,14 @@ class _HomeScreenState extends State<HomeScreen> {
         await _flutterV2Ray.initializeV2Ray();
 
         await _flutterV2Ray.startV2Ray(
-          remark: parser.remark,
-          config: config,
-        );
+  remark: parser.remark,
+  config: config,
+);
 
-        setState(() => _isConnected = true);
+setState(() {
+  _isConnected = true;
+  _wasConnected = true;
+});
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -656,5 +693,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
 
 
