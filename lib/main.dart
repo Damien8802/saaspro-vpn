@@ -697,11 +697,38 @@ Future<void> _openTelegramHelp() async {
   }
 
   Widget _buildBrand() {
-    return Column(
-      children: [
-        const SizedBox(height: 20),
-        Image.asset('assets/logo.png', width: 140, height: 140, fit: BoxFit.contain),
-        const SizedBox(height: 20),
+  return Column(
+    children: [
+      const SizedBox(height: 20),
+      Container(
+        width: 160,
+        height: 160,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6C5CE7).withOpacity(0.5),
+              blurRadius: 30,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: ClipOval(
+            child: Image.asset(
+              'assets/logo.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(height: 20),
         const Text('VPN', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         Container(
