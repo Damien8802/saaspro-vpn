@@ -636,7 +636,7 @@ Future<void> _openTelegramHelp() async {
   try {
     // Пробуем открыть через приложение Telegram
     if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
+         await launchUrl(url, mode: LaunchMode.platformDefault);
     } else {
       // Fallback: показываем диалог с кнопками
       if (mounted) {
