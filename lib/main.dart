@@ -634,20 +634,43 @@ void _openProfile() {
 Future<void> _openTelegramHelp() async {
   final Uri url = Uri.parse('https://t.me/Business_Stack');
   try {
+    // Пробуем открыть через приложение Telegram
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
+      // Fallback: показываем диалог с кнопками
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось открыть Telegram')),
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1A1A3E),
+            title: const Text('Помощь', style: TextStyle(color: Colors.white)),
+            content: const SelectableText(
+              'Telegram-канал: https://t.me/Business_Stack\n\nСкопируйте ссылку и откройте вручную.',
+              style: TextStyle(color: Colors.white),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Закрыть', style: TextStyle(color: Color(0xFF6C5CE7))),
+              ),
+            ],
+          ),
         );
       }
     }
   } catch (e) {
     print('Error opening Telegram: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ссылка: https://t.me/Business_Stack'),
+          duration: Duration(seconds: 10),
+        ),
+      );
+    }
   }
 }
-
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
