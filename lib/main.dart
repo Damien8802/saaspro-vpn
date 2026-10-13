@@ -491,14 +491,14 @@ setState(() {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                _buildHeader(),
-                if (_isOwner) _buildOwnerBadge(),
-                _buildBrand(),
-                _buildVPNButton(),
-                _buildServersList(),
-                const SizedBox(height: 20),
-                _buildLogoutButton(),
-              ],
+  _buildHeader(),
+  if (_isOwner) _buildOwnerBadge(),
+  const SizedBox(height: 30),
+  _buildVPNButton(),
+  _buildServersList(),
+  const SizedBox(height: 20),
+  _buildLogoutButton(),
+],
             ),
           ),
         ),
@@ -842,6 +842,7 @@ Future<void> _openTelegramHelp() async {
     );
   }
 }
+
 
 
 
