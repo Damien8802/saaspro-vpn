@@ -632,7 +632,7 @@ void _openProfile() {
 }
 
 Future<void> _openTelegramHelp() async {
-  final Uri url = Uri.parse('https://t.me/Business_Stack');
+  final Uri url = Uri.parse('https://t.me/Business_Stack_Bot');
   try {
     // Пробуем открыть через приложение Telegram
     if (await canLaunchUrl(url)) {
@@ -646,7 +646,7 @@ Future<void> _openTelegramHelp() async {
             backgroundColor: const Color(0xFF1A1A3E),
             title: const Text('Помощь', style: TextStyle(color: Colors.white)),
             content: const SelectableText(
-              'Telegram-канал: https://t.me/Business_Stack\n\nСкопируйте ссылку и откройте вручную.',
+              'Telegram-канал: https://t.me/Business_Stack_Bot\n\nСкопируйте ссылку и откройте вручную.',
               style: TextStyle(color: Colors.white),
             ),
             actions: [
@@ -664,7 +664,7 @@ Future<void> _openTelegramHelp() async {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Ссылка: https://t.me/Business_Stack'),
+          content: Text('Ссылка: https://t.me/Business_Stack_Bot'),
           duration: Duration(seconds: 10),
         ),
       );
