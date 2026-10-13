@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_v2ray/flutter_v2ray.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const VPNApp());
@@ -337,14 +338,15 @@ void initState() {
           headers: {'Authorization': 'Bearer $token'},
         );
 
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          setState(() {
-            _userEmail = data['email'] ?? '';
-            _userName = data['name'] ?? _userEmail.split('@')[0];
-            _isOwner = _userEmail == 'dev@businessstack.ru' || data['role'] == 'owner';
-          });
-        }
+       if (response.statusCode == 200) {
+  final data = json.decode(response.body);
+  final user = data['user'] ?? {};
+  setState(() {
+    _userEmail = user['email'] ?? '';
+    _userName = user['name'] ?? _userEmail.split('@')[0];
+    _isOwner = _userEmail == 'dev@businessstack.ru' || user['role'] == 'owner';
+  });
+}
       } catch (e) {
         print('Error loading user: $e');
       }
@@ -475,6 +477,7 @@ setState(() {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: _buildDrawer(),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -503,6 +506,121 @@ setState(() {
     );
   }
 
+Widget _buildDrawer() {
+  return Drawer(
+    backgroundColor: const Color(0xFF1A1A3E),
+    child: ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        DrawerHeader(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.white.withOpacity(0.2),
+                child: Text(
+                  _userName.isNotEmpty ? _userName[0].toUpperCase() : '👤',
+                  style: const TextStyle(fontSize: 28, color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _userName.isNotEmpty ? _userName : 'Пользователь',
+                style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                _userEmail.isNotEmpty ? _userEmail : '',
+                style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.8)),
+              ),
+            ],
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.person, color: Colors.white),
+          title: const Text('Профиль', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            Navigator.pop(context);
+            _openProfile();
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.help_outline, color: Colors.white),
+          title: const Text('Помощь', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            Navigator.pop(context);
+            _openTelegramHelp();
+          },
+        ),
+        const Divider(color: Colors.white24),
+        ListTile(
+          leading: const Icon(Icons.logout, color: Colors.red),
+          title: const Text('Выйти', style: TextStyle(color: Colors.red)),
+          onTap: () {
+            Navigator.pop(context);
+            _logout();
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+void _openProfile() {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF1A1A3E),
+      title: const Text('Профиль', style: TextStyle(color: Colors.white)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Имя: ${_userName.isNotEmpty ? _userName : "Пользователь"}',
+              style: const TextStyle(color: Colors.white)),
+          const SizedBox(height: 8),
+          Text('Email: ${_userEmail.isNotEmpty ? _userEmail : "—"}',
+              style: const TextStyle(color: Colors.white)),
+          const SizedBox(height: 8),
+          Text('Статус: ${_isOwner ? "👑 Владелец" : "Premium"}',
+              style: const TextStyle(color: Colors.white)),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Закрыть', style: TextStyle(color: Color(0xFF6C5CE7))),
+        ),
+      ],
+    ),
+  );
+}
+
+Future<void> _openTelegramHelp() async {
+  final Uri url = Uri.parse('https://t.me/Business_Stack');
+  try {
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось открыть Telegram')),
+        );
+      }
+    }
+  } catch (e) {
+    print('Error opening Telegram: $e');
+  }
+}
+
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -514,10 +632,14 @@ setState(() {
             color: Colors.white.withOpacity(0.05),
             borderRadius: BorderRadius.circular(15),
           ),
-          child: IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white),
-            onPressed: () {},
-          ),
+         child: Builder(
+  builder: (context) => IconButton(
+    icon: const Icon(Icons.menu, color: Colors.white),
+    onPressed: () {
+      Scaffold.of(context).openDrawer();
+    },
+  ),
+),
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
@@ -693,6 +815,8 @@ setState(() {
     );
   }
 }
+
+
 
 
 
