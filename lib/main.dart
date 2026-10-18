@@ -596,13 +596,19 @@ class _HomeScreenState extends State<HomeScreen> {
         final data = json.decode(response.body);
         final countries = data['countries'] as List;
 
-        setState(() {
-          _servers = countries.map((c) => {
-            'emoji': c['flag'] ?? '🌍',
-            'name': c['name'] ?? 'Unknown',
-            'ping': '${c['ping'] ?? 0} ms',
-            'code': c['code'] ?? '',
-            'servers': c['servers'] ?? 0,
+               setState(() {
+          _servers = countries.map((c) {
+            String name = c['name'] ?? 'Unknown';
+            bool isLte = name.startsWith('LTE ');
+
+            return {
+              'emoji': c['flag'] ?? '🌍',
+              'name': name,
+              'ping': '${c['ping'] ?? 0} ms',
+              'code': c['code'] ?? '',
+              'servers': c['servers'] ?? 0,
+              'isLte': isLte, // <--- Добавили флаг
+            };
           }).toList();
         });
 
@@ -634,7 +640,14 @@ class _HomeScreenState extends State<HomeScreen> {
           return;
         }
 
-        final parser = FlutterV2ray.parseFromURL(_vlessUrl);
+                String linkToUse = _vlessUrl; 
+        
+        // Если выбран сервер с приставкой LTE, подключаемся к Москве
+        if (_servers.isNotEmpty && _servers[_selectedServer]['isLte'] == true) {
+          linkToUse = 'vless://2b12c802-edc2-4a1f-afeb-3fa3cc0afef2@5.188.117.249:8443?encryption=none&security=tls&type=tcp&headerType=none&allowInsecure=1#Москва(LTE)';
+        }
+
+        final parser = FlutterV2ray.parseFromURL(linkToUse);
         final config = parser.getFullConfiguration();
 
         final allowed = await _flutterV2Ray.requestPermission();
