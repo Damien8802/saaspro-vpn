@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
@@ -191,31 +190,26 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // ✅ БЕЛЫЙ КВАДРАТ С ЛОГОТИПОМ (вместо фиолетового круга)
                   Container(
                     width: 120,
                     height: 120,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF6C5CE7).withOpacity(0.5),
-                          blurRadius: 25,
-                          spreadRadius: 3,
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
                         ),
                       ],
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(15),
-                      child: ClipOval(
-                        child: Image.asset(
-                          'assets/logo.png',
-                          fit: BoxFit.cover,
-                        ),
+                      child: Image.asset(
+                        'assets/logo.png',
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
@@ -307,28 +301,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Map<String, dynamic>> _servers = [];
 
-@override
-void initState() {
-  super.initState();
-  _flutterV2Ray = FlutterV2ray(onStatusChanged: (status) {
-    print('VPN status: ${status.state}');
-    if (mounted) {
-      setState(() {
-        _isConnected = (status.state == 'CONNECTED');
-        if (status.state == 'DISCONNECTED' && _wasConnected) {
-          _showDisconnectedSnack();
-          _wasConnected = false;
-        }
-        if (status.state == 'CONNECTED') {
-          _wasConnected = true;
-        }
-      });
-    }
-  });
-  _loadUserData();
-  _loadCountries();
-  _loadVlessConfig();
-}
+  @override
+  void initState() {
+    super.initState();
+    _flutterV2Ray = FlutterV2ray(onStatusChanged: (status) {
+      print('VPN status: ${status.state}');
+      if (mounted) {
+        setState(() {
+          _isConnected = (status.state == 'CONNECTED');
+          if (status.state == 'DISCONNECTED' && _wasConnected) {
+            _showDisconnectedSnack();
+            _wasConnected = false;
+          }
+          if (status.state == 'CONNECTED') {
+            _wasConnected = true;
+          }
+        });
+      }
+    });
+    _loadUserData();
+    _loadCountries();
+    _loadVlessConfig();
+  }
+
   Future<void> _loadVlessConfig() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
@@ -365,15 +360,15 @@ void initState() {
           headers: {'Authorization': 'Bearer $token'},
         );
 
-       if (response.statusCode == 200) {
-  final data = json.decode(response.body);
-  final user = data['user'] ?? {};
-  setState(() {
-    _userEmail = user['email'] ?? '';
-    _userName = user['name'] ?? _userEmail.split('@')[0];
-    _isOwner = _userEmail == 'dev@businessstack.ru' || user['role'] == 'owner';
-  });
-}
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          final user = data['user'] ?? {};
+          setState(() {
+            _userEmail = user['email'] ?? '';
+            _userName = user['name'] ?? _userEmail.split('@')[0];
+            _isOwner = _userEmail == 'dev@businessstack.ru' || user['role'] == 'owner';
+          });
+        }
       } catch (e) {
         print('Error loading user: $e');
       }
@@ -413,25 +408,25 @@ void initState() {
     }
   }
 
-void _showDisconnectedSnack() {
-  if (!mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: const Text('VPN отключён. Нажмите «Подключить» снова.'),
-      backgroundColor: Colors.red.withOpacity(0.9),
-      duration: const Duration(seconds: 5),
-      action: SnackBarAction(
-        label: 'Переподключить',
-        textColor: Colors.white,
-        onPressed: () {
-          if (!_isConnected && !_isConnecting) {
-            _toggleVPN();
-          }
-        },
+  void _showDisconnectedSnack() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('VPN отключён. Нажмите «Подключить» снова.'),
+        backgroundColor: Colors.red.withOpacity(0.9),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'Переподключить',
+          textColor: Colors.white,
+          onPressed: () {
+            if (!_isConnected && !_isConnecting) {
+              _toggleVPN();
+            }
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Future<void> _toggleVPN() async {
     if (_isConnecting) return;
@@ -466,14 +461,14 @@ void _showDisconnectedSnack() {
         await _flutterV2Ray.initializeV2Ray();
 
         await _flutterV2Ray.startV2Ray(
-  remark: parser.remark,
-  config: config,
-);
+          remark: parser.remark,
+          config: config,
+        );
 
-setState(() {
-  _isConnected = true;
-  _wasConnected = true;
-});
+        setState(() {
+          _isConnected = true;
+          _wasConnected = true;
+        });
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -518,14 +513,14 @@ setState(() {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-  _buildHeader(),
-  if (_isOwner) _buildOwnerBadge(),
-  const SizedBox(height: 30),
-  _buildVPNButton(),
-  _buildServersList(),
-  const SizedBox(height: 20),
-  _buildLogoutButton(),
-],
+                _buildHeader(),
+                if (_isOwner) _buildOwnerBadge(),
+                const SizedBox(height: 30),
+                _buildVPNButton(),
+                _buildServersList(),
+                const SizedBox(height: 20),
+                _buildLogoutButton(),
+              ],
             ),
           ),
         ),
@@ -533,144 +528,143 @@ setState(() {
     );
   }
 
-Widget _buildDrawer() {
-  return Drawer(
-    backgroundColor: const Color(0xFF1A1A3E),
-    child: ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        DrawerHeader(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+  Widget _buildDrawer() {
+    return Drawer(
+      backgroundColor: const Color(0xFF1A1A3E),
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.white.withOpacity(0.2),
+                  child: Text(
+                    _userName.isNotEmpty ? _userName[0].toUpperCase() : '👤',
+                    style: const TextStyle(fontSize: 28, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _userName.isNotEmpty ? _userName : 'Пользователь',
+                  style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  _userEmail.isNotEmpty ? _userEmail : '',
+                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.8)),
+                ),
+              ],
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: Colors.white.withOpacity(0.2),
-                child: Text(
-                  _userName.isNotEmpty ? _userName[0].toUpperCase() : '👤',
-                  style: const TextStyle(fontSize: 28, color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                _userName.isNotEmpty ? _userName : 'Пользователь',
-                style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                _userEmail.isNotEmpty ? _userEmail : '',
-                style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.8)),
-              ),
-            ],
+          ListTile(
+            leading: const Icon(Icons.person, color: Colors.white),
+            title: const Text('Профиль', style: TextStyle(color: Colors.white)),
+            onTap: () {
+              Navigator.pop(context);
+              _openProfile();
+            },
           ),
-        ),
-        ListTile(
-          leading: const Icon(Icons.person, color: Colors.white),
-          title: const Text('Профиль', style: TextStyle(color: Colors.white)),
-          onTap: () {
-            Navigator.pop(context);
-            _openProfile();
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.help_outline, color: Colors.white),
-          title: const Text('Помощь', style: TextStyle(color: Colors.white)),
-          onTap: () {
-            Navigator.pop(context);
-            _openTelegramHelp();
-          },
-        ),
-        const Divider(color: Colors.white24),
-        ListTile(
-          leading: const Icon(Icons.logout, color: Colors.red),
-          title: const Text('Выйти', style: TextStyle(color: Colors.red)),
-          onTap: () {
-            Navigator.pop(context);
-            _logout();
-          },
-        ),
-      ],
-    ),
-  );
-}
-
-void _openProfile() {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      backgroundColor: const Color(0xFF1A1A3E),
-      title: const Text('Профиль', style: TextStyle(color: Colors.white)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Имя: ${_userName.isNotEmpty ? _userName : "Пользователь"}',
-              style: const TextStyle(color: Colors.white)),
-          const SizedBox(height: 8),
-          Text('Email: ${_userEmail.isNotEmpty ? _userEmail : "—"}',
-              style: const TextStyle(color: Colors.white)),
-          const SizedBox(height: 8),
-          Text('Статус: ${_isOwner ? "👑 Владелец" : "Premium"}',
-              style: const TextStyle(color: Colors.white)),
+          ListTile(
+            leading: const Icon(Icons.help_outline, color: Colors.white),
+            title: const Text('Помощь', style: TextStyle(color: Colors.white)),
+            onTap: () {
+              Navigator.pop(context);
+              _openTelegramHelp();
+            },
+          ),
+          const Divider(color: Colors.white24),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('Выйти', style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.pop(context);
+              _logout();
+            },
+          ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Закрыть', style: TextStyle(color: Color(0xFF6C5CE7))),
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
 
-Future<void> _openTelegramHelp() async {
-  final Uri url = Uri.parse('https://t.me/Business_Stack_Bot');
-  try {
-    // Пробуем открыть через приложение Telegram
-    if (await canLaunchUrl(url)) {
-         await launchUrl(url, mode: LaunchMode.platformDefault);
-    } else {
-      // Fallback: показываем диалог с кнопками
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF1A1A3E),
-            title: const Text('Помощь', style: TextStyle(color: Colors.white)),
-            content: const SelectableText(
-              'Telegram-канал: https://t.me/Business_Stack_Bot\n\nСкопируйте ссылку и откройте вручную.',
-              style: TextStyle(color: Colors.white),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Закрыть', style: TextStyle(color: Color(0xFF6C5CE7))),
+  void _openProfile() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A3E),
+        title: const Text('Профиль', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Имя: ${_userName.isNotEmpty ? _userName : "Пользователь"}',
+                style: const TextStyle(color: Colors.white)),
+            const SizedBox(height: 8),
+            Text('Email: ${_userEmail.isNotEmpty ? _userEmail : "—"}',
+                style: const TextStyle(color: Colors.white)),
+            const SizedBox(height: 8),
+            Text('Статус: ${_isOwner ? "👑 Владелец" : "Premium"}',
+                style: const TextStyle(color: Colors.white)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Закрыть', style: TextStyle(color: Color(0xFF6C5CE7))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openTelegramHelp() async {
+    final Uri url = Uri.parse('https://t.me/Business_Stack_Bot');
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.platformDefault);
+      } else {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: const Color(0xFF1A1A3E),
+              title: const Text('Помощь', style: TextStyle(color: Colors.white)),
+              content: const SelectableText(
+                'Telegram-канал: https://t.me/Business_Stack_Bot\n\nСкопируйте ссылку и откройте вручную.',
+                style: TextStyle(color: Colors.white),
               ),
-            ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Закрыть', style: TextStyle(color: Color(0xFF6C5CE7))),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error opening Telegram: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ссылка: https://t.me/Business_Stack_Bot'),
+            duration: Duration(seconds: 10),
           ),
         );
       }
     }
-  } catch (e) {
-    print('Error opening Telegram: $e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ссылка: https://t.me/Business_Stack_Bot'),
-          duration: Duration(seconds: 10),
-        ),
-      );
-    }
   }
-}
+
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -682,14 +676,14 @@ Future<void> _openTelegramHelp() async {
             color: Colors.white.withOpacity(0.05),
             borderRadius: BorderRadius.circular(15),
           ),
-         child: Builder(
-  builder: (context) => IconButton(
-    icon: const Icon(Icons.menu, color: Colors.white),
-    onPressed: () {
-      Scaffold.of(context).openDrawer();
-    },
-  ),
-),
+          child: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            ),
+          ),
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
@@ -709,13 +703,17 @@ Future<void> _openTelegramHelp() async {
                   ),
                   shape: BoxShape.circle,
                 ),
-                child: Center(child: Text(_userName.isNotEmpty ? _userName[0].toUpperCase() : '👤', style: const TextStyle(fontSize: 18))),
+                child: Center(
+                    child: Text(
+                        _userName.isNotEmpty ? _userName[0].toUpperCase() : '👤',
+                        style: const TextStyle(fontSize: 18))),
               ),
               const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_userName.isNotEmpty ? _userName : 'Пользователь', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(_userName.isNotEmpty ? _userName : 'Пользователь',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   const Text('Premium', style: TextStyle(fontSize: 10, color: Colors.white70)),
                 ],
               ),
@@ -740,45 +738,44 @@ Future<void> _openTelegramHelp() async {
         children: [
           Icon(Icons.verified, size: 18, color: Color(0xFFFBBF24)),
           SizedBox(width: 8),
-          Text('👑 ВЛАДЕЛЕЦ ПЛАТФОРМЫ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFFBBF24))),
+          Text('👑 ВЛАДЕЛЕЦ ПЛАТФОРМЫ',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFFBBF24))),
         ],
       ),
     );
   }
 
   Widget _buildBrand() {
-  return Column(
-    children: [
-      const SizedBox(height: 20),
-      Container(
-        width: 160,
-        height: 160,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+        // ✅ БЕЛЫЙ КВАДРАТ С ЛОГОТИПОМ
+        Container(
+          width: 160,
+          height: 160,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(40),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
+              ),
+            ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF6C5CE7).withOpacity(0.5),
-              blurRadius: 30,
-              spreadRadius: 5,
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: ClipOval(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
             child: Image.asset(
               'assets/logo.png',
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
             ),
           ),
         ),
-      ),
-      const SizedBox(height: 20),
+        const SizedBox(height: 20),
         const Text('VPN', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         Container(
@@ -787,7 +784,8 @@ Future<void> _openTelegramHelp() async {
             color: const Color(0xFF6C5CE7).withOpacity(0.2),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Text('ОБХОД БЛОКИРОВОК', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+          child: const Text('ОБХОД БЛОКИРОВОК',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -808,7 +806,12 @@ Future<void> _openTelegramHelp() async {
                 shape: BoxShape.circle,
                 color: Colors.white.withOpacity(0.03),
                 boxShadow: _isConnected
-                    ? [BoxShadow(color: const Color(0xFF00F2FE).withOpacity(0.5), blurRadius: 30, spreadRadius: 10)]
+                    ? [
+                        BoxShadow(
+                            color: const Color(0xFF00F2FE).withOpacity(0.5),
+                            blurRadius: 30,
+                            spreadRadius: 10)
+                      ]
                     : [],
               ),
               child: AnimatedContainer(
@@ -819,19 +822,24 @@ Future<void> _openTelegramHelp() async {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: _isConnected
-                      ? const LinearGradient(colors: [Color(0xFF00F2FE), Color(0xFF4FACFE)])
-                      : const LinearGradient(colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)]),
+                      ? const LinearGradient(
+                          colors: [Color(0xFF00F2FE), Color(0xFF4FACFE)])
+                      : const LinearGradient(
+                          colors: [Color(0xFF6C5CE7), Color(0xFFA367F0)]),
                 ),
                 child: Center(
                   child: _isConnecting
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Icon(Icons.power_settings_new, size: 60, color: Colors.white),
+                      : const Icon(Icons.power_settings_new,
+                          size: 60, color: Colors.white),
                 ),
               ),
             ),
             const SizedBox(height: 20),
             Text(
-              _isConnecting ? 'ПОДКЛЮЧЕНИЕ...' : (_isConnected ? 'ЗАЩИЩЕН' : 'ОТКЛЮЧЕН'),
+              _isConnecting
+                  ? 'ПОДКЛЮЧЕНИЕ...'
+                  : (_isConnected ? 'ЗАЩИЩЕН' : 'ОТКЛЮЧЕН'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -851,7 +859,8 @@ Future<void> _openTelegramHelp() async {
       children: [
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 8),
-          child: Text('🌍 Доступные серверы', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          child: Text('🌍 Доступные серверы',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ),
         const SizedBox(height: 10),
         ..._servers.asMap().entries.map((entry) {
@@ -865,8 +874,10 @@ Future<void> _openTelegramHelp() async {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
             child: ListTile(
               leading: Text(server['emoji'], style: const TextStyle(fontSize: 28)),
-              title: Text(server['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('${server['ping']} • ${server['servers']} серверов', style: const TextStyle(fontSize: 11)),
+              title: Text(server['name'],
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text('${server['ping']} • ${server['servers']} серверов',
+                  style: const TextStyle(fontSize: 11)),
               trailing: _selectedServer == index
                   ? const Icon(Icons.check_circle, color: Color(0xFF6C5CE7))
                   : null,
@@ -892,10 +903,3 @@ Future<void> _openTelegramHelp() async {
     );
   }
 }
-
-
-
-
-
-
-
